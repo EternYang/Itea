@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>首页</title>
+<script type="text/javascript" src="../js/tools/jquery-1.10.2.js"></script>
+<link rel="stylesheet" href="../css/bootstrap/bootstrap.min.css" />
+<script type="text/javascript" src="../js/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="../js/index/index.js"></script>
+<style type="text/css">
+li {
+	list-style-type: none;
+	margin: 5%;
+}
+
+.leftTree {
+	margin-top: 5%;
+}
+</style>
+</head>
+<body style="overflow: hidden;">
+	<div class="row">
+		<div class="col-xs-2 col-sm-2 col-md-2 col-lg-2 leftTree">
+			<ul class="nav nav-pills nav-stacked " id="navs"
+				style="text-align: center;">
+				<li role="presentation" class="active"><a href="#"
+					id="showWorking">工作台(Work)</a></li>
+				<li role="presentation"><a href="#" id="showInventory">视图(Remainder
+						view)</a></li>
+				<li role="presentation"><a href="#" id="showSetting">系统设置(System
+						setting)</a></li>
+			</ul>
+		</div>
+		<div class="col-xs-10 col-sm-10 col-md-10 col-lg-10">
+			<iframe src="../itea/work" id="external-frame"
+				onload="setIframeHeight()"></iframe>
+		</div>
+	</div>
+</body>
+</html>
