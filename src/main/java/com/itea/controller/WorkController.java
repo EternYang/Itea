@@ -100,19 +100,14 @@ public class WorkController {
 	@ResponseBody
 	protected Results changeCalling2Over(@RequestParam("orderId") String orderId,
 			@RequestParam("nextId") String nextId) {
-		log.info("edit order" + orderId + "to end");
+		
 		Results result = new Results();
-		int i = is.setStatusByOrderId(orderId, "4");
-		if (i != 1) {
-			result.setSuc(false);
-			return result;
+		if(Utils.isNotEmpty(orderId)){
+			log.info("edit order" + orderId + "to end");
+			is.setStatusByOrderId(orderId, "4");	
 		}
 		log.info("edit order" + nextId + "to Calling");
 		is.setStatusByOrderId(nextId, "3");
-		if (i != 1) {
-			result.setSuc(false);
-			return result;
-		}
 		result.setSuc(true);
 		return result;
 	}
