@@ -27,6 +27,7 @@ import com.itea.util.Utils;
  * 负责查询并向前台发送信息推送的类 query and send message to front-page
  * 
  * @author Eternal.Y
+ * @Date 2018/08/02
  */
 
 @Controller
@@ -45,19 +46,26 @@ public class WorkController {
 	 */
 	@RequestMapping("/queryBegin")
 	protected void queryBegin(HttpServletRequest request, HttpServletResponse response) {
-		// SocketServer.send_message("command begin");
 		while (true) {
 			try {
 				Map<String, Object> result = this.queryMessage(request, response);
-				if(result != null)
+				if(result != null){
 					SocketServer.send_message(JSON.toJSONString(result));
-				else{
-					if(count >=10)
+				}else{
+					if(count >= 5 && count < 10)
 						SocketServer.send_message("from server");
+					if(count >=10){
+						result = new HashMap<>();
+						result.put("orders", this.orders);
+						result.put("inventory", this.invent);
+						result.put("status", this.status);
+						count =0;
+						SocketServer.send_message(JSON.toJSONString(result));
+					}
 					count++;
 				}
 				Thread.sleep(2 * 1000); // 设置暂停的时间 2秒]
-			} catch (InterruptedException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
@@ -65,10 +73,13 @@ public class WorkController {
 
 	@RequestMapping("/changeErrorOrMiss")
 	@ResponseBody
-	protected Results changeStatusError(@RequestParam("orderId") String orderId, @RequestParam("status") String status,
-			@RequestParam("nextId") String nextId, @RequestParam("nextStatus") String nextStatus) {
+	protected Results changeStatusError(HttpServletRequest request, HttpServletResponse response) {
+		String orderId = request.getParameter("orderId");
+		String status = request.getParameter("status");
+		String nextId = request.getParameter("nextId");
+		String nextStatus = request.getParameter("nextStatus");
 		Results result = new Results();
-		log.info("为订单" + orderId + "设置状态为" + status);
+		log.info("edit order" + orderId + " status to '" + status+ "'");
 		int i = is.setStatusByOrderId(orderId, status);
 		if (i != 1) {
 			result.setSuc(false);
@@ -89,14 +100,14 @@ public class WorkController {
 	@ResponseBody
 	protected Results changeCalling2Over(@RequestParam("orderId") String orderId,
 			@RequestParam("nextId") String nextId) {
-		log.info("修改订单" + orderId + "为结束");
+		log.info("edit order" + orderId + "to end");
 		Results result = new Results();
 		int i = is.setStatusByOrderId(orderId, "4");
 		if (i != 1) {
 			result.setSuc(false);
 			return result;
 		}
-		log.info("修改订单" + nextId + "为Calling");
+		log.info("edit order" + nextId + "to Calling");
 		is.setStatusByOrderId(nextId, "3");
 		if (i != 1) {
 			result.setSuc(false);
@@ -107,7 +118,7 @@ public class WorkController {
 	}
 
 	protected List<Map<String, Object>> queryError(String errorcode) {
-		log.info("查询errorcode");
+		log.info("query errorcode");
 		Map<String, String> map = new HashMap<>();
 		map.put("errorcode", errorcode);
 		return is.queryError(errorcode);
@@ -126,6 +137,20 @@ public class WorkController {
 		}
 		result.setSuc(false);
 		return result;
+	}
+	
+	@RequestMapping("/queryAllInventory")
+	@ResponseBody
+	protected Results queryAllInventory() {
+		log.info("queryAllInventory is begin");
+		List<Map<String, Object>> list = is.queryAllInventory();
+		for (Map<String, Object> map : list)
+			map.put("percentage", Utils.paseDouble(Double.parseDouble(map.get("percentage").toString())));
+		Results rb = new Results();
+		rb.setSuc(true);
+		rb.setResult(list);
+		log.info("queryAllInventory is end");
+		return rb;
 	}
 
 	@RequestMapping("/cleanMachine")
@@ -158,7 +183,7 @@ public class WorkController {
 
 	private Map<String, Object> queryMessage(HttpServletRequest request, HttpServletResponse response) {
 		Map<String, Object> result = new HashMap<>();
-		Results orders = this.queryOrders(request, response);
+		Map<String, List<Map<String, Object>>> orders = this.queryOrders(request, response);
 		List<Map<String, Object>> invent = this.queryLessInventory();
 		List<Map<String, Object>> stat = this.queryWorkStatus();
 		if (orders == null && invent == null && stat == null)
@@ -171,16 +196,14 @@ public class WorkController {
 
 	private Map<String, List<Map<String, Object>>> orders = null;
 
-	protected Results queryOrders(HttpServletRequest request, HttpServletResponse response) {
+	protected Map<String, List<Map<String, Object>>> queryOrders(HttpServletRequest request, HttpServletResponse response) {
 
-		log.info("getOrders开始执行");
+		log.info("getOrders is beginning");
 		Map<String, List<Map<String, Object>>> map = new HashMap<>();
 		// get dictionary
 		List<Dictionary> dictionary = is.queryDicts();
 		for (Dictionary dic : dictionary) {
-			log.info("当前查询为---->" + dic.getName());
 			List<Map<String, Object>> result = is.queryOrderByStatus(dic.getStatus());
-			log.info(result);
 			List<Map<String, Object>> list = new ArrayList<>();
 			for (Map<String, Object> order : result) {
 				if (Integer.parseInt(order.get("orderTotal").toString()) == Integer
@@ -191,20 +214,16 @@ public class WorkController {
 		}
 		if (map.equals(orders))
 			return null;
-		Results rb = new Results();
-		rb.setResult(map);
-		rb.setSuc(true);
-		log.info("getOrdersByStatus执行结束，所得结果----->");
-		log.info(rb);
 		this.orders = map;
-		return rb;
+		log.info("getOrders was ended");
+		return map;
 	}
 
 	private List<Map<String, Object>> invent = null;
 
 	protected List<Map<String, Object>> queryLessInventory() {
+		log.info("queryLessInventory is beginning");
 		List<Map<String, Object>> list = is.queryLessInventory();
-		// Map<String, Object> map = list.get(0);
 		for (Map<String, Object> map : list) {
 			map.put("percentage", Utils.paseDouble(Double.parseDouble(map.get("percentage").toString())));
 		}
@@ -212,22 +231,15 @@ public class WorkController {
 		if (list.equals(invent))
 			return null;
 		invent = list;
+		log.info("queryLessInventory is ended");
 		return list;
 	}
 
 	private List<Map<String, Object>> status = null;
 
 	protected List<Map<String, Object>> queryWorkStatus() {
+		log.info("query work status is begin");
 		List<Map<String, Object>> result = is.queryWorkStatus();
-		System.out.println(result);
-		/*
-		 * for(Map<String,Object> map : result){
-		 * if(map.get("WorkingDesc").toString().startsWith("ERROR")){
-		 * List<Map<String,Object>> list =
-		 * this.queryError(map.get("WorkingDesc").toString());
-		 * map.put("isError", true);
-		 * map.put("ErrorDesc",list.get(0).get("ErrorDesc")); } }
-		 */
 		Iterator<Map<String, Object>> it = result.iterator();
 		while (it.hasNext()) {
 			Map<String, Object> map = it.next();
@@ -240,6 +252,7 @@ public class WorkController {
 		if (result.equals(status))
 			return null;
 		this.status = result;
+		log.info("query work status is end");
 		return result;
 	}
 

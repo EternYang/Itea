@@ -1,8 +1,9 @@
 $(function(){
 	$("button").click(function(){
 		var commandCode = $(this).attr("id").substring($(this).attr("id").length - 1);
-		ajax("../work/cleanMachine.go",{
-			commandCode : commandCode
+		ajax("../work/cleanMachine",{
+			commandCode : commandCode,
+			itemName:""
 		},function(msg){
 			$("h3").show().text(msg.result).css("color",msg.suc?"green":"red");
 			setTimeout(function(){

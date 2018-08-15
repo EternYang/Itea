@@ -21,13 +21,11 @@ public class IteaService {
 
 	@SuppressWarnings("unchecked")
 	public List<Dictionary> queryDicts() {
-		log.info("查询字典表");
 		String hql = "from Dictionary";
 		return (List<Dictionary>) commonDao.findByHql(hql, Dictionary.class);
 	}
 
 	public List<Map<String, Object>> queryOrderByStatus(String status) {
-		log.info("查询所有订单....");
 		String sql = "SELECT orderId,orderNO,COUNT(OrderNO) as total,orderTotal FROM y_QueNumberOrder where OrderStatus = ?0"
 				+ " and CallDate=curdate() GROUP BY OrderNO,OrderTotal,orderId  ORDER BY  OrderNO";
 		return commonDao.findBySql(sql, status);
@@ -37,14 +35,13 @@ public class IteaService {
 		String sql = "update y_quenumberorder set OrderStatus = ?0 where OrderId = ?1";
 		int row = commonDao.updateBySql(sql, status, orderId);
 		if (row == 1) {
-			log.info("更新成功");
+			log.info("update success");
 		} else
-			log.info("出现错误");
+			log.info("error!!!!!!");
 		return row;
 	}
 
 	public List<Map<String, Object>> queryLessInventory() {
-		log.info("查询最少的库存");
 		String sql = "select * from (SELECT *, IFNULL((ItemStore * 1.0/ItemFullLoad * 100 ), 0) as percentage "
 				+ "FROM y_ItemDetail where ItemWeightWay='sub' and itemFullLoad <> 0)" + 
 				 "as tab where tab.percentage < 25 order by tab.percentage";
@@ -52,13 +49,11 @@ public class IteaService {
 	}
 
 	public List<Map<String, Object>> queryWorkStatus() {
-		log.info("查询当前工作状态");
 		StringBuffer sql = new StringBuffer("select * from y_CurWorkingLog  order by workingtime desc limit 5");
 		return commonDao.findBySql(sql.toString());
 	}
 
 	public List<Map<String, Object>> queryAllInventory() {
-		log.info("查询所有库存");
 		String sql = "SELECT *, IFNULL((ItemStore * 1.0/ItemFullLoad * 100 ), 0) as percentage "
 				+ "FROM y_ItemDetail where ItemWeightWay='sub' or ItemWeightWay='add' and itemFullLoad <> 0 order by ItemStore";
 		return commonDao.findBySql(sql);

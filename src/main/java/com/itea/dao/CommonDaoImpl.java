@@ -42,10 +42,8 @@ public class CommonDaoImpl implements CommonDao {
 		//指定返回对象类型
 		nativeQuery.unwrap(SQLQuery.class).setResultTransformer(Transformers.ALIAS_TO_ENTITY_MAP);
 		log.info("findBySql is doing now......");
-		log.info("current sql is ------>" + sql);
 		if(objects != null && objects.length > 0){
 			for(int i = 0 ; i < objects.length ; i++){
-				log.info("current Paramter is --->" + objects[i]);
 				nativeQuery.setParameter(i, objects[i]);
 			}
 		}

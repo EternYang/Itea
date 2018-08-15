@@ -4,6 +4,8 @@ $(function() {
 		ws.close();
 	});
 	createWebSocket(wsurl);
+	
+	eventBind();
 
 	// 发送请求，提醒服务器开始循环
 	$.ajax({
@@ -12,6 +14,87 @@ $(function() {
 
 });
 
+
+/**
+ * 事件绑定
+ */
+function eventBind() {
+	$("#calling2Missed").click(
+			function() {
+				var orderId = isEmpty($("#callingSelect").attr("orderId")) ? ""
+						: $("#callingSelect").attr("orderId");
+				var nextOrderId = isEmpty($("#nextSelect option:selected")
+						.val()) ? "" : $("#nextSelect option:selected").val();
+				$.ajax({
+					url : "../work/changeErrorOrMiss.go",
+					data : {
+						orderId : orderId,
+						status : "-1",
+						nextId : nextOrderId,
+						nextStatus : "3"
+					},
+					dataType : "json",
+					success : function(msg) {
+						parent.location.reload();
+					}
+				})
+				// queryOrders();
+			});
+
+	$("#next2calling").click(
+			function() {
+				var orderId = isEmpty($("#callingSelect").attr("orderId")) ? ""
+						: $("#callingSelect").attr("orderId");
+				var nextOrderId = isEmpty($("#nextSelect option:selected")
+						.val()) ? "" : $("#nextSelect option:selected").val();
+				$.ajax({
+					url : "../work/changeStatus.go",
+					data : {
+						orderId : orderId,
+						nextId : nextOrderId
+					},
+					dataType : "json",
+					success : function(msg) {
+						parent.location.reload();
+					}
+				})
+			});
+
+	$("#missedover").click(function() {
+		var orderId = $("#missSelect option:selected").val();
+		$.ajax({
+			url : "../work/changeErrorOrMiss.go",
+			data : {
+				orderId : orderId,
+				status : "4",
+				nextId : "",
+				nextStatus : ""
+			},
+			dataType : "json",
+			success : function(msg) {
+				parent.location.reload();
+			}
+		})
+	});
+
+	$("#restart").click(
+			function() {
+				var orderId = $("#errorSelect option:selected").val();
+				$.ajax({
+					url : "../work/changeErrorOrMiss.go",
+					data : {
+						orderId : orderId,
+						status : "0"
+					},
+					dataType : "json",
+					success : function(msg) {
+						parent.location.reload();
+					}
+				})
+			});
+}
+
+
 /**
  * 定义websocket
  * 
@@ -19,7 +102,7 @@ $(function() {
 var ws = null;
 // 避免重复连接
 var lockReconnect = false;
-var wsurl = "ws://localhost:8080/socketServer";
+var wsurl = "ws://192.168.1.145:8080/Itea/socketServer";
 createWebSocket(wsurl);
 function createWebSocket(url){
 	if ("WebSocket" in window) {
@@ -40,6 +123,7 @@ function connect() {
 			console.log(msg.data);
 			return;
 		}
+		console.log(JSON.parse(msg.data));
 		displayOrders(JSON.parse(msg.data).orders);
 		displayInvent(JSON.parse(msg.data).inventory);
 		displayStatus(JSON.parse(msg.data).status);
@@ -67,26 +151,23 @@ function displayOrders(msg) {
 	selectedNext = $("#nextSelect option:selected").val();
 	selectedMissed = $("#missSelect option:selected").val();
 	console.log(msg);
-	if (!msg.suc) {
-		return;
-	}
 	// $("option").remove();
-	var mes = msg.result;
-	if (!isEmpty(mes.calling)) {
-		var calling = mes.calling[0];
-		// $("#callingSelect").text(calling.orderNO.substring(calling.orderNO.length-4)).attr("orderId",calling.orderId);
-		$("#modal_option").clone(true).removeAttr("id").text(
+	if (!isEmpty(msg.calling)) {
+		var calling = msg.calling[0];
+		$("#callingSelect").text(calling.orderNO.substring(calling.orderNO.length-4)).attr("orderId",calling.orderId);
+		/*$("#modal_option").clone(true).removeAttr("id").text(
 				calling.orderNO.substring(next.orderNO.length - 4)).attr(
 				"selected", "selected").val(calling.orderId).appendTo(
-				"#callingSelect");
+				"#callingSelect");*/
 	}
-	if (!isEmpty(mes.next)) {
-		if (mes.next.length > $("#nextSelect").find("option").length) {
+	if (!isEmpty(msg.next)) {
+		if (msg.next.length > $("#nextSelect").find("option").length) {
 			// 可以提示有新完成的订单 }
 		}
 		$("#nextSelect").html("");
-		for (var i = 0; i < mes.next.length; i++) {
-			var next = mes.next[i];
+		$("#modal_option").clone(true).removeAttr("id").appendTo("#nextSelect");
+		for (var i = 0; i < msg.next.length; i++) {
+			var next = msg.next[i];
 			$("#modal_option").clone(true).removeAttr("id").text(
 					next.orderNO.substring(next.orderNO.length - 4)).attr(
 					"selected",
@@ -95,10 +176,11 @@ function displayOrders(msg) {
 		}
 		$("#nextSelect").multiselect("rebuild");
 	}
-	if (!isEmpty(mes.missed)) {
+	if (!isEmpty(msg.missed)) {
 		$("#missSelect").html("");
-		for (var i = 0; i < mes.missed.length; i++) {
-			var missed = mes.missed[i];
+		$("#modal_option").clone(true).removeAttr("id").appendTo("#missSelect");
+		for (var i = 0; i < msg.missed.length; i++) {
+			var missed = msg.missed[i];
 			$("#modal_option").clone(true).removeAttr("id").text(
 					missed.orderNO.substring(missed.orderNO.length - 4)).attr(
 					"selected",
@@ -107,11 +189,13 @@ function displayOrders(msg) {
 		}
 		$("#missSelect").multiselect("rebuild");
 	}
-	if (!isEmpty(mes.error)) {
+	if (!isEmpty(msg.error)) {
 		showOrHideError(true);
-		var error = mes.error[0];
+		var error = msg.error[0];
+		$("#errorSelect").html("");
+		$("#modal_option").clone(true).removeAttr("id").appendTo("#errorSelect");
 		$("#modal_option").clone(true).removeAttr("id").text(
-				missed.orderNO.substring(error.orderNO.length - 4)).attr(
+				error.orderNO.substring(error.orderNO.length - 4)).attr(
 				"selected", "selected").val(error.orderId).appendTo(
 				"#errorSelect");
 	} else {
@@ -119,7 +203,7 @@ function displayOrders(msg) {
 	}
 	$("#missSelect").multiselect();
 	$("#nextSelect").multiselect();
-	$("#callingSelect").multiselect();
+	//$("#callingSelect").multiselect();
 	$("#errorSelect").multiselect();
 }
 
@@ -185,6 +269,17 @@ function displayStatus(msg) {
 	}
 }
 
+function reconnect(url) {
+	if (lockReconnect)
+		return;
+	lockReconnect = true;
+	// 没连接上会一直重连，设置延迟避免请求过多
+	setTimeout(function() {
+		console.info("尝试重连..." + formatDate(new Date().getTime()));
+		createWebSocket(url);
+		lockReconnect = false;
+	}, 5000);
+}
 
 /**
  * 心跳检测,每5s心跳一次 防止socket自动关闭
@@ -219,17 +314,8 @@ function displayStatus(msg) {
 	}
 }
 
-function reconnect(url) {
-	if (lockReconnect)
-		return;
-	lockReconnect = true;
-	// 没连接上会一直重连，设置延迟避免请求过多
-	setTimeout(function() {
-		console.info("尝试重连..." + formatDate(new Date().getTime()));
-		createWebSocket(url);
-		lockReconnect = false;
-	}, 5000);
-}*/
+
+*/
 
 // js中格式化日期
 /*function formatDate(time){
@@ -275,7 +361,7 @@ function showOrHideError(bo) {
 			$(divs[i]).attr("class", "col-xs-3 col-sm-3 col-md-3 col-lg-3");
 		}
 		$("#showError").show();
-		var bgm = document.getElementById('sound');
+		var bgm = $('#sound')[0];
 		bgm.play();
 	} else {
 		$("#showError").hide();

@@ -10,7 +10,7 @@ $(function() {
 			return;
 		}
 		$.ajax({
-			url : "../work/changePrepared.go",
+			url : "../work/changePrepared",
 			data : {
 				itemName : clickItem.attr("itemName"),
 				itemPrepared : $("#beiliao").val()
@@ -37,7 +37,7 @@ $(function() {
 	//发出清洗某个机器的指令
 	$("#cleanMachine").click(function(){
 		$.ajax({
-			url : "../work/cleanMachine.go",
+			url : "../work/cleanMachine",
 			type : "post",
 			data : {
 				itemName : clickItem.attr("itemName"),
@@ -67,7 +67,7 @@ $(function() {
 function searchInven(){
 	// 查询所有库存
 	$.ajax({
-		url : "../work/queryAllInventory.go",
+		url : "../work/queryAllInventory",
 		dataType : "json",
 		success : function(result) {
 			if (result.suc) {
